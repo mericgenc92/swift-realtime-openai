@@ -195,8 +195,11 @@ extension WebRTCConnector: LKRTCDataChannelDelegate {
 	public func dataChannel(_: LKRTCDataChannel, didReceiveMessageWith buffer: LKRTCDataBuffer) {
 		do { try stream.yield(decoder.decode(ServerEvent.self, from: buffer.data)) }
 		catch {
-			print("Failed to decode server event: \(String(data: buffer.data, encoding: .utf8) ?? "<invalid utf8>")")
-			stream.finish(throwing: error)
+			// Log the decode error but do NOT finish the stream.
+			// OpenAI Realtime API may send events with fields the decoder doesn't expect
+			// (e.g., new usage format). Finishing the stream would kill the entire
+			// conversation task and prevent any further message processing.
+			print("[WebRTC] Skipping undecodable server event: \(error.localizedDescription)")
 		}
 	}
 
