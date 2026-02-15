@@ -39,6 +39,11 @@ import MetaCodable
 	@CodedAs("session.updated")
 	case sessionUpdated(eventId: String, session: Session)
 
+	/// Returned when a conversation is created. Emitted automatically after session creation.
+	/// - Parameter eventId: The unique ID of the server event.
+	@CodedAs("conversation.created")
+	case conversationCreated(eventId: String)
+
 	/// Returned when a conversation item is created.
 	/// - Parameter eventId: The unique ID of the server event.
 	/// - Parameter item: A single item within a Realtime conversation.
@@ -223,6 +228,13 @@ import MetaCodable
 	/// - Parameter responseId: The ID of the Response to which the output audio belongs.
 	@CodedAs("output_audio_buffer.stopped")
 	case outputAudioBufferStopped(eventId: String, responseId: String)
+
+	/// Returned when the output audio buffer is cleared (e.g., when the user interrupts).
+	///
+	/// - Parameter eventId: The unique ID of the server event.
+	/// - Parameter responseId: The ID of the Response to which the output audio belongs.
+	@CodedAs("output_audio_buffer.cleared")
+	case outputAudioBufferCleared(eventId: String, responseId: String?)
 
 	/// Returned when a new Response is created.
 	///
@@ -531,6 +543,7 @@ extension ServerEvent: Identifiable {
 			case let .error(id, _): id
 			case let .sessionCreated(id, _): id
 			case let .sessionUpdated(id, _): id
+			case let .conversationCreated(id): id
 			case let .conversationItemAdded(id, _, _): id
 			case let .conversationItemCreated(id, _, _): id
 			case let .conversationItemDone(id, _, _): id
@@ -548,6 +561,7 @@ extension ServerEvent: Identifiable {
 			case let .inputAudioBufferTimeoutTriggered(id, _, _, _): id
 			case let .outputAudioBufferStarted(id, _): id
 			case let .outputAudioBufferStopped(id, _): id
+			case let .outputAudioBufferCleared(id, _): id
 			case let .responseCreated(id, _): id
 			case let .responseDone(id, _): id
 			case let .responseOutputItemAdded(id, _, _, _): id

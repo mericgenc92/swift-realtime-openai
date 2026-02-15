@@ -196,10 +196,15 @@ extension WebRTCConnector: LKRTCDataChannelDelegate {
 		do { try stream.yield(decoder.decode(ServerEvent.self, from: buffer.data)) }
 		catch {
 			// Log the decode error but do NOT finish the stream.
-			// OpenAI Realtime API may send events with fields the decoder doesn't expect
-			// (e.g., new usage format). Finishing the stream would kill the entire
-			// conversation task and prevent any further message processing.
-			print("[WebRTC] Skipping undecodable server event: \(error.localizedDescription)")
+			// Extract the event type from raw JSON for debugging.
+			let rawType: String
+			if let json = try? JSONSerialization.jsonObject(with: buffer.data) as? [String: Any],
+			   let type = json["type"] as? String {
+				rawType = type
+			} else {
+				rawType = "unknown"
+			}
+			print("[WebRTC] Skipping undecodable server event '\(rawType)': \(error.localizedDescription)")
 		}
 	}
 
