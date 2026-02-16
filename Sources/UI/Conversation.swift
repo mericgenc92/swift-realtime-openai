@@ -14,7 +14,7 @@ public final class Conversation: @unchecked Sendable {
 	public typealias SessionUpdateCallback = (inout Session) -> Void
 
 	private let client: WebRTCConnector
-	private var task: Task<Void, Error>!
+	nonisolated(unsafe) private var task: Task<Void, Error>!
 	private let sessionUpdateCallback: SessionUpdateCallback?
 	private let errorStream: AsyncStream<ServerError>.Continuation
 
