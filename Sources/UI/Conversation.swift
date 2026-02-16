@@ -83,6 +83,7 @@ public final class Conversation: @unchecked Sendable {
 	}
 
 	deinit {
+		task?.cancel()
 		client.disconnect()
 		errorStream.finish()
 	}
@@ -251,6 +252,24 @@ private extension Conversation {
 					guard case let .message(newMessage) = item else { return }
 
 					message = newMessage
+				}
+			// GA Realtime API sends conversation.item.added (not just .created)
+			// Without handling this, entries stays empty and all transcripts are lost
+			case let .conversationItemAdded(_, item, _):
+				if !entries.contains(where: { $0.id == item.id }) {
+					entries.append(item)
+				}
+			// Safety net: conversation.item.done carries the finalized item
+			case let .conversationItemDone(_, item, _):
+				if let index = entries.firstIndex(where: { $0.id == item.id }) {
+					entries[index] = item
+				} else {
+					entries.append(item)
+				}
+			// response.output_item.added fires when model starts generating a new item
+			case let .responseOutputItemAdded(_, _, _, item):
+				if !entries.contains(where: { $0.id == item.id }) {
+					entries.append(item)
 				}
 			default: break
 		}
