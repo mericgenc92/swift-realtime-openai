@@ -13,4 +13,15 @@ public struct ServerError: Codable, Equatable, Sendable {
 
 	/// The eventId of the client event that caused the error, if applicable.
 	public let eventId: String?
+
+	// Public so other modules (e.g. the UI layer surfacing failed responses
+	// through the error stream) can construct one — the synthesized memberwise
+	// init is internal to this module.
+	public init(type: String, code: String?, message: String, param: String?, eventId: String?) {
+		self.type = type
+		self.code = code
+		self.message = message
+		self.param = param
+		self.eventId = eventId
+	}
 }

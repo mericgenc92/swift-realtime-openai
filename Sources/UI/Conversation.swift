@@ -161,6 +161,12 @@ public final class Conversation: @unchecked Sendable {
 	public func send(result output: Item.FunctionCallOutput) throws {
 		try send(event: .createConversationItem(.functionCallOutput(output)))
 	}
+
+	/// Instantaneous audio levels (linear 0...1) for the user's microphone and
+	/// the model's voice, read from WebRTC stats. Poll to drive a live waveform.
+	public func audioLevels() async -> WebRTCConnector.AudioLevels {
+		await client.audioLevels()
+	}
 }
 
 /// Event handling private API
@@ -271,6 +277,22 @@ private extension Conversation {
 				if !entries.contains(where: { $0.id == item.id }) {
 					entries.append(item)
 				}
+			// A failed response arrives as a normal response.done with
+			// status "failed" — NOT as an error event. Swallowing it here
+			// (the old `default: break`) meant a rate-limited response was
+			// pure dead air: no audio, no transcript, no error. Surface it
+			// through the error stream so clients can retry.
+			case let .responseDone(_, response):
+				guard response.status == .failed else { break }
+				let detail = response.statusDetails?.error
+				errorStream.yield(ServerError(
+					type: detail?.type ?? "response_failed",
+					code: detail?.code ?? "response_failed",
+					message: detail?.message ?? "Response \(response.id) failed without error details.",
+					param: nil,
+					eventId: nil
+				))
+				print("Response \(response.id) failed: \(detail?.code ?? "unknown") — \(detail?.message ?? "no details")")
 			default: break
 		}
 	}

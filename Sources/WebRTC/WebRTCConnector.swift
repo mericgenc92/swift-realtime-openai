@@ -88,6 +88,38 @@ import FoundationNetworking
 	public func toggleMute() {
 		audioTrack.isEnabled.toggle()
 	}
+
+	/// Instantaneous audio levels, read from the peer connection's stats.
+	///
+	/// Values are linear 0...1: `input` is the user's microphone
+	/// (media-source stat), `output` is the model's voice as received
+	/// (inbound-rtp stat). Poll at 20–30 Hz to drive a live waveform —
+	/// the stats query is cheap, but it is a snapshot, not a stream.
+	public struct AudioLevels: Equatable, Sendable {
+		public let input: Float
+		public let output: Float
+
+		public static let silent = AudioLevels(input: 0, output: 0)
+	}
+
+	public func audioLevels() async -> AudioLevels {
+		await withCheckedContinuation { continuation in
+			connection.statistics { report in
+				var input: Float = 0
+				var output: Float = 0
+				for stat in report.statistics.values {
+					guard stat.values["kind"] as? String == "audio",
+					      let level = stat.values["audioLevel"] as? NSNumber else { continue }
+					switch stat.type {
+						case "media-source": input = level.floatValue
+						case "inbound-rtp": output = level.floatValue
+						default: break
+					}
+				}
+				continuation.resume(returning: AudioLevels(input: input, output: output))
+			}
+		}
+	}
 }
 
 extension WebRTCConnector {
